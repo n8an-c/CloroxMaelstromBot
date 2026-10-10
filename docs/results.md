@@ -84,6 +84,7 @@ Scored with the same Stockfish annotation as my own games. See `reports/humanlik
 | full bot (adapter, T=1, book, empirical think-time, whole-second clocks) | 0.54 | 69 | 2.0 | 0.801 / 0.899 |
 | no adapter (plain Maia-3 5M, T=1, book, think-time) | 0.485 | 70 | 2.2 | 0.795 / 0.911 |
 | adapter, argmax (T=0), book, think-time | 0.802 | 42 | 1.0 | 0.791 / 0.904 |
+| full bot + calibrated resignation (T=1) | 0.475 | 68 | 2.8 | **0.770 / 0.839** |
 | full bot without opening book (T=1) | 0.478 | 63 | 2.4 | 0.754 / 0.823 |
 
 In the first run the classifier separated us almost entirely on **timing** (timing-only
@@ -98,6 +99,11 @@ move quality only 0.568. The remaining separation comes from *game length and cl
 the simulated games never resign, so the bot plays 43 moves per game after ply 10 vs my 30
 (median ply 55 vs 42) and runs its clock lower (median 53% left vs 67%). A resignation rule
 calibrated on my own games is the next fix; move quality itself is nearly indistinguishable.
+
+With resignation (both sides resign below a Maia-3 expected score of 0.08 with probability 0.75 per move, matching my
+75% resignation rate at ~7% win probability), games average 62 plies vs my 70 and the AUC drops to 0.770 / 0.839. What is
+left is mostly *strength*: at temperature 1 the sampled bot is a little weaker and more erratic than me (ACPL 68 vs 56,
+endgame blunders 3.5 vs 1.9 per 100), so the temperature is tuned next to match my error rate.
 
 Argmax play (T=0) makes the bot *stronger* than me (middlegame ACPL 42 vs 56, blunders 1.0 vs 1.6 per 100,
 best-move rate 47% vs 42%), which is exactly why the bot samples from the policy.
