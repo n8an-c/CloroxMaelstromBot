@@ -135,6 +135,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--depth", type=int, default=None)
     p.add_argument("--workers", type=int, default=None)
     p.add_argument("--all-moves", action="store_true", help="annotate opponents' moves too")
+    p.add_argument("--all-games", action="store_true", help="include out-of-scope games too")
     p.add_argument("--limit", type=int, default=None, help="only the first N positions (smoke test)")
     a = p.parse_args(argv)
     cfg = load_config()["stockfish"]
@@ -145,6 +146,8 @@ def main(argv: list[str] | None = None) -> None:
     pos = pd.read_parquet(d / "positions.parquet")
     if not a.all_moves and cfg.get("user_moves_only", True):
         pos = pos[pos.is_user]
+    if "in_scope" in pos and not a.all_games:
+        pos = pos[pos.in_scope]
     if a.limit:
         pos = pos.head(a.limit)
     out_path = d / "annotations.parquet"

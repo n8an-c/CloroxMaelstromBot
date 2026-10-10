@@ -160,6 +160,13 @@ def rating_history(games: pd.DataFrame, out: pathlib.Path) -> list[str]:
         ax.plot(grp.datetime_utc, grp.user_elo.rolling(20, min_periods=1).mean(), label=f"{pf} {sp}")
     ax.set(title="your rating over time (20-game rolling mean, native scale)", ylabel="rating")
     ax.legend()
+    try:
+        from maelstrom.config import load_config
+        md = load_config().get("min_date")
+        if md:
+            ax.axvline(pd.Timestamp(md, tz="UTC"), color="k", ls="--", lw=1, label=f"min_date {md}")
+    except Exception:
+        pass
     fig.tight_layout()
     fig.savefig(out / "rating_history.png", dpi=120)
     plt.close(fig)
@@ -167,14 +174,24 @@ def rating_history(games: pd.DataFrame, out: pathlib.Path) -> list[str]:
 
 
 def run(data_dir: pathlib.Path, out: pathlib.Path) -> pathlib.Path:
-    games = pd.read_parquet(data_dir / "games.parquet")
-    pos = pd.read_parquet(data_dir / "positions.parquet")
+    games_all = pd.read_parquet(data_dir / "games.parquet")
+    pos_all = pd.read_parquet(data_dir / "positions.parquet")
     ann_path = data_dir / "annotations.parquet"
     ann = pd.read_parquet(ann_path) if ann_path.exists() else None
     out.mkdir(parents=True, exist_ok=True)
+    if "in_scope" in games_all:
+        games, pos = games_all[games_all.in_scope], pos_all[pos_all.in_scope.fillna(False)]
+    else:
+        games, pos = games_all, pos_all
     u = pos[pos.is_user]
     lines = overview(games, pos)
-    lines += rating_history(games, out)
+    if len(games) != len(games_all):
+        lines.append(f"\nOut of scope (excluded from modelling): {len(games_all) - len(games)} games. "
+                     "Scope = speeds and min_date in configs/data.yaml. The rating history below uses all games.")
+        lines.append("\n| platform | speed | excluded games |\n|---|---|---|")
+        for (pf, sp), g in games_all[~games_all.in_scope].groupby(["platform", "speed"]):
+            lines.append(f"| {pf} | {sp} | {len(g)} |")
+    lines += rating_history(games_all, out)
     lines += ["\n## Opening repertoire (first 12 plies)\n"] + opening_tree(games, pos)
     lines += think_time_curves(u, out)
     lines += mistakes_vs_clock(u, ann, out)

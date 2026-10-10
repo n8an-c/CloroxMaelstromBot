@@ -13,7 +13,8 @@ RATING_MAP = {"blitz": {"a": 1.0, "b": 250}, "rapid": {"a": 1.0, "b": 200}, "bul
 def parsed(tmp_path_factory):
     d = tmp_path_factory.mktemp("raw")
     paths = write_synthetic_pgns(d)
-    games, pos = parse.parse_files(paths, {"lichess": USER, "chesscom": USER}, RATING_MAP, None, show_progress=False)
+    games, pos = parse.parse_files(paths, {"lichess": USER, "chesscom": USER}, RATING_MAP,
+                                   scope_speeds={"blitz", "rapid"}, min_date="2024-01-05", show_progress=False)
     return games, pos
 
 
@@ -48,6 +49,12 @@ def test_games_table(parsed):
     li = games[games.platform == "lichess"].iloc[0]
     assert li.user_elo_lichess == li.user_elo
     assert games.n_plies.sum() == len(pos)
+    # scope: blitz/rapid on or after min_date
+    assert not games.loc[games.speed == "bullet", "in_scope"].any()
+    assert not games.loc[games.datetime_utc < pd.Timestamp("2024-01-05", tz="UTC"), "in_scope"].any()
+    assert games.loc[(games.speed != "bullet") & (games.datetime_utc >= pd.Timestamp("2024-01-05", tz="UTC")), "in_scope"].all()
+    assert 0 < games.in_scope.sum() < len(games)
+    assert (pos.merge(games[["game_id", "in_scope"]], on="game_id", suffixes=("", "_g")).eval("in_scope == in_scope_g")).all()
 
 
 def test_positions_table(parsed):
@@ -85,11 +92,17 @@ def test_positions_table(parsed):
 def test_split(parsed):
     games, pos = parsed
     games = games.copy()
-    games["split"] = split.assign_splits(games, 0.2, 0.25, 1).values
-    assert games.split.value_counts()["test"] == round(0.2 * len(games))
-    # test games are the most recent ones
+    games["split"] = split.assign_splits(games, 0.2, 0.25, 1, games.in_scope).values
+    n_in = int(games.in_scope.sum())
+    assert (games.loc[~games.in_scope, "split"] == "excluded").all()
+    assert (games.loc[games.in_scope, "split"] != "excluded").all()
+    assert games.split.value_counts()["test"] == round(0.2 * n_in)
+    # test games are the most recent in-scope ones
     t_min = games.loc[games.split == "test", "datetime_utc"].min()
-    assert (games.loc[games.split != "test", "datetime_utc"] < t_min).all()
+    assert (games.loc[games.split.isin(["train", "val"]), "datetime_utc"] < t_min).all()
+    # no-scope variant covers every game
+    full = split.assign_splits(games, 0.2, 0.25, 1)
+    assert (full != "excluded").all()
     pos = pos.merge(games[["game_id", "split"]], on="game_id")
     seen = split.mark_seen_positions(pos)
     # the starting position is always "seen" for white user moves in test
@@ -97,5 +110,5 @@ def test_split(parsed):
     if len(start):
         assert seen.loc[start.index, "seen_fen_in_train"].all()
     # deterministic
-    again = split.assign_splits(games, 0.2, 0.25, 1).values
+    again = split.assign_splits(games, 0.2, 0.25, 1, games.in_scope).values
     assert (again == games.split.values).all()

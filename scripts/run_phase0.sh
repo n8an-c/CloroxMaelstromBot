@@ -5,7 +5,7 @@ set -euo pipefail
 source .venv/bin/activate
 LI=$(python -c "from maelstrom.config import load_config; print(load_config()['players'].get('lichess') or '')")
 CC=$(python -c "from maelstrom.config import load_config; print(load_config()['players'].get('chesscom') or '')")
-PERF=$(python -c "from maelstrom.config import load_config; print(','.join(load_config()['perf_types']))")
+PERF=$(python -c "from maelstrom.config import load_config; print(','.join(load_config().get('export_perf_types') or load_config()['perf_types']))")
 [ -n "$LI" ] && maelstrom-export-lichess --user "$LI" --perf "$PERF"
 [ -n "$CC" ] && maelstrom-export-chesscom --user "$CC"
 maelstrom-parse

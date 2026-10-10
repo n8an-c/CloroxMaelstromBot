@@ -3,16 +3,23 @@ players:
   lichess: null        # e.g. "YourLichessName"
   chesscom: null       # e.g. "YourChesscomName"
 
-# Which speeds to keep. Lichess perfTypes / Chess.com time classes.
+# Speeds to EXPORT from Lichess (Chess.com archives always contain everything).
+export_perf_types: [bullet, blitz, rapid, classical]
+
+# Modelling scope: a game is in_scope when its speed is in perf_types AND it was
+# played on/after min_date. Everything is still parsed and kept; changing these
+# only requires re-running `maelstrom-split` (seconds), not a re-export.
 perf_types: [blitz, rapid]
+min_date: "2022-02-01"      # null = no cutoff. Chosen from the rating history; revisit after EDA.
 
 # Chess.com -> Lichess-equivalent rating mapping (approximate; tune in Phase 1).
 # Applied as lichess = a * chesscom + b, per speed.
+# Initial values from the owner's concurrent ratings (blitz 1816 vs 2015, rapid 2002 vs 2068).
 rating_map:
-  blitz:  {a: 1.0, b: 250}
-  rapid:  {a: 1.0, b: 200}
+  blitz:  {a: 1.0, b: 200}
+  rapid:  {a: 1.0, b: 75}
   bullet: {a: 1.0, b: 300}
-  classical: {a: 1.0, b: 150}
+  classical: {a: 1.0, b: 100}
 
 split:
   test_frac: 0.10     # most recent games -> temporal test set

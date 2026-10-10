@@ -170,8 +170,7 @@ def iter_games(paths: Iterable[pathlib.Path]) -> Iterator[tuple[pathlib.Path, ch
                 yield path, game
 
 
-def parse_game(game: chess.pgn.Game, users: dict[str, str], rating_map: dict,
-               keep_speeds: set[str] | None) -> tuple[dict, list[dict]] | None:
+def parse_game(game: chess.pgn.Game, users: dict[str, str], rating_map: dict) -> tuple[dict, list[dict]] | None:
     h = game.headers
     platform = detect_platform(h)
     variant = h.get("Variant", "Standard")
@@ -181,8 +180,6 @@ def parse_game(game: chess.pgn.Game, users: dict[str, str], rating_map: dict,
     if base is None:
         return None  # daily / correspondence / unknown
     speed = speed_class(base, inc, platform)
-    if keep_speeds and speed not in keep_speeds:
-        return None
 
     user = users.get(platform)
     white, black = h.get("White", ""), h.get("Black", "")
@@ -315,8 +312,20 @@ def parse_game(game: chess.pgn.Game, users: dict[str, str], rating_map: dict,
     return grow, rows
 
 
+def in_scope_mask(games: pd.DataFrame, scope_speeds: set[str] | None, min_date: str | None) -> pd.Series:
+    """Modelling scope: speed in scope_speeds and datetime >= min_date (both optional)."""
+    m = pd.Series(True, index=games.index)
+    if scope_speeds:
+        m &= games["speed"].isin(scope_speeds)
+    if min_date:
+        cutoff = pd.Timestamp(min_date, tz="UTC")
+        m &= games["datetime_utc"].notna() & (games["datetime_utc"] >= cutoff)
+    return m
+
+
 def parse_files(paths: list[pathlib.Path], users: dict[str, str], rating_map: dict,
-                keep_speeds: set[str] | None = None, show_progress: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
+                scope_speeds: set[str] | None = None, min_date: str | None = None,
+                show_progress: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
     games, positions = [], []
     seen: set[str] = set()
     n_skipped = 0
@@ -324,7 +333,7 @@ def parse_files(paths: list[pathlib.Path], users: dict[str, str], rating_map: di
     if show_progress:
         it = tqdm(it, unit="game", desc="parsing")
     for _, game in it:
-        out = parse_game(game, users, rating_map, keep_speeds)
+        out = parse_game(game, users, rating_map)
         if out is None:
             n_skipped += 1
             continue
@@ -335,12 +344,14 @@ def parse_files(paths: list[pathlib.Path], users: dict[str, str], rating_map: di
         games.append(g)
         positions.extend(rows)
     if n_skipped:
-        print(f"skipped {n_skipped} games (variants, daily, or filtered speeds)", file=sys.stderr)
+        print(f"skipped {n_skipped} games (variants, from-position, daily/correspondence)", file=sys.stderr)
     gdf = pd.DataFrame(games)
     pdf = pd.DataFrame(positions)
     if len(gdf):
         gdf["datetime_utc"] = pd.to_datetime(gdf["datetime_utc"], utc=True)
         gdf = gdf.sort_values(["datetime_utc", "game_id"]).reset_index(drop=True)
+        gdf["in_scope"] = in_scope_mask(gdf, scope_speeds, min_date).values
+        pdf = pdf.merge(gdf[["game_id", "in_scope"]], on="game_id", how="left")
     return gdf, pdf
 
 
@@ -353,7 +364,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("pgns", nargs="*", help="PGN files (default: data/raw/**/*.pgn)")
     p.add_argument("--lichess-user", default=None)
     p.add_argument("--chesscom-user", default=None)
-    p.add_argument("--all-speeds", action="store_true", help="ignore perf_types filter in config")
+    p.add_argument("--no-scope", action="store_true", help="mark every game in_scope (ignore perf_types/min_date)")
     p.add_argument("--out-dir", default="data/processed")
     a = p.parse_args(argv)
     cfg = load_config()
@@ -367,8 +378,9 @@ def main(argv: list[str] | None = None) -> None:
     paths = [pathlib.Path(x) for x in a.pgns] or default_pgn_paths()
     if not paths:
         sys.exit("No PGN files found under data/raw/")
-    keep = None if a.all_speeds else set(cfg.get("perf_types", []))
-    gdf, pdf = parse_files(paths, users, cfg.get("rating_map", {}), keep)
+    scope = None if a.no_scope else set(cfg.get("perf_types", []))
+    min_date = None if a.no_scope else cfg.get("min_date")
+    gdf, pdf = parse_files(paths, users, cfg.get("rating_map", {}), scope, min_date)
     out = pathlib.Path(a.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     gdf.to_parquet(out / "games.parquet", index=False)
@@ -376,7 +388,9 @@ def main(argv: list[str] | None = None) -> None:
     n_user = int(pdf["is_user"].sum()) if len(pdf) else 0
     print(f"{len(gdf)} games, {len(pdf)} positions ({n_user} your moves) -> {out}")
     if len(gdf):
-        print(gdf.groupby(["platform", "speed"]).size().to_string())
+        print(gdf.groupby(["platform", "speed", "in_scope"]).size().unstack("in_scope", fill_value=0).to_string())
+        print(f"in scope: {int(gdf.in_scope.sum())} games, {int((pdf.is_user & pdf.in_scope).sum())} your moves "
+              f"(speeds={sorted(scope) if scope else 'all'}, min_date={min_date})")
         no_user = int(gdf["user_color"].isna().sum())
         if no_user:
             print(f"WARNING: {no_user} games where neither player matched a configured username", file=sys.stderr)
