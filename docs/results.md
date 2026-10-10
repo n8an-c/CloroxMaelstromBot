@@ -81,8 +81,8 @@ Scored with the same Stockfish annotation as my own games. See `reports/humanlik
 | bot variant | score vs Maia-3 | middlegame ACPL (me: 56) | blunders/100 mid (me: 1.6) | stylometry AUC move / game |
 |---|---|---|---|---|
 | first run (Gaussian think-time residuals, continuous clocks) | 0.48 | 71 | 2.4 | 0.862 / 0.883 |
-| full bot (adapter, T=1, book, empirical think-time) | _pending_ | | | |
-| no adapter (plain Maia-3, T=1) | _pending_ | | | |
+| full bot (adapter, T=1, book, empirical think-time, whole-second clocks) | 0.54 | 69 | 2.0 | 0.801 / 0.899 |
+| no adapter (plain Maia-3 5M, T=1, book, think-time) | 0.485 | 70 | 2.2 | 0.795 / 0.911 |
 | adapter, argmax (T=0) | _pending_ | | | |
 | full bot without book | _pending_ | | | |
 
