@@ -28,6 +28,8 @@ maelstrom-stockfish-baseline = "maelstrom.eval.stockfish_baseline:main"
 maelstrom-adapter = "maelstrom.models.adapter:main"
 maelstrom-think-time = "maelstrom.models.think_time:main"
 maelstrom-uci = "maelstrom.bot.engine:main"
+maelstrom-selfplay = "maelstrom.eval.selfplay:main"
+maelstrom-humanlike = "maelstrom.eval.humanlike:main"
 maelstrom-maia3-features = "maelstrom.models.maia3_features:main"
 
 [tool.setuptools.packages.find]
