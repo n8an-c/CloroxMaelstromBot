@@ -45,7 +45,7 @@ def export(user: str, out_dir: pathlib.Path, contact: str = "github.com/n8an-c/C
     s = requests.Session()
     s.headers["User-Agent"] = f"maelstrom-chess-bot research ({contact})"
     s.headers["Accept"] = "application/json, application/x-chess-pgn"
-    archives = _get(s, ARCHIVES.format(user=user)).json()["archives"]
+    archives = _get(s, ARCHIVES.format(user=user.lower())).json()["archives"]  # chess.com URLs are lowercase
     out_dir.mkdir(parents=True, exist_ok=True)
     this_month = dt.date.today().strftime("%Y-%m")
     written = []
