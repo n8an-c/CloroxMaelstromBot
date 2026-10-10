@@ -1,0 +1,18 @@
+# env
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+# data and artifacts (private: contains your games)
+data/**
+!data/README.md
+reports/*.png
+reports/*.parquet
+tools/
+*.pt
+*.pth
+*.ckpt
+# secrets
+.env
+configs/local.yaml
