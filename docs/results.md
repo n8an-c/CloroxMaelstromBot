@@ -84,7 +84,7 @@ Scored with the same Stockfish annotation as my own games. See `reports/humanlik
 | full bot (adapter, T=1, book, empirical think-time, whole-second clocks) | 0.54 | 69 | 2.0 | 0.801 / 0.899 |
 | no adapter (plain Maia-3 5M, T=1, book, think-time) | 0.485 | 70 | 2.2 | 0.795 / 0.911 |
 | adapter, argmax (T=0), book, think-time | 0.802 | 42 | 1.0 | 0.791 / 0.904 |
-| full bot without book | _pending_ | | | |
+| full bot without opening book (T=1) | 0.478 | 63 | 2.4 | 0.754 / 0.823 |
 
 In the first run the classifier separated us almost entirely on **timing** (timing-only
 AUC 0.862, move-quality-only 0.558): 59% of my recorded think times are whole seconds
