@@ -25,6 +25,13 @@ def test_time_control_parsing():
     assert parse.parse_time_control("-") == (None, None)
 
 
+def test_rated_from_event():
+    assert parse.rated_from_event("rated blitz game") is True
+    assert parse.rated_from_event("Rated Blitz game") is True
+    assert parse.rated_from_event("casual rapid game") is False
+    assert parse.rated_from_event("SiVCA Intervarsity Friendly Arena") is None
+
+
 def test_speed_classes():
     assert parse.speed_class(180, 0, "lichess") == "blitz"
     assert parse.speed_class(180, 2, "lichess") == "blitz"

@@ -74,6 +74,17 @@ def speed_class(base: int | None, inc: int | None, platform: str) -> str | None:
     return "rapid"
 
 
+def rated_from_event(event: str) -> bool | None:
+    """Lichess exports use lower-case 'rated blitz game' / 'casual rapid game'; arenas and
+    team battles carry only the tournament name, so their rating status is unknown (None)."""
+    e = event.lower()
+    if e.startswith("rated"):
+        return True
+    if e.startswith("casual"):
+        return False
+    return None
+
+
 def detect_platform(headers: chess.pgn.Headers) -> str:
     site = headers.get("Site", "")
     link = headers.get("Link", "")
@@ -196,7 +207,7 @@ def parse_game(game: chess.pgn.Game, users: dict[str, str], rating_map: dict) ->
     result = h.get("Result", "*")
     res_white = {"1-0": 1.0, "0-1": 0.0, "1/2-1/2": 0.5}.get(result)
     event = h.get("Event", "")
-    rated = ("Rated" in event) if platform == "lichess" else None
+    rated = rated_from_event(event) if platform == "lichess" else None
     gid = game_identifier(h, platform)
     when = game_datetime(h)
 
