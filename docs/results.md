@@ -92,6 +92,13 @@ AUC 0.862, move-quality-only 0.558): 59% of my recorded think times are whole se
 That is a measurement artifact of the simulation, fixed in the later runs. Move quality
 alone is close to indistinguishable at the move level.
 
+With whole-second clocks and empirical think-time residuals (full bot row), the feature-group
+ablation reads: all 0.801, timing only 0.697, clock only 0.639, position/move only 0.614,
+move quality only 0.568. The remaining separation comes from *game length and clock use*:
+the simulated games never resign, so the bot plays 43 moves per game after ply 10 vs my 30
+(median ply 55 vs 42) and runs its clock lower (median 53% left vs 67%). A resignation rule
+calibrated on my own games is the next fix; move quality itself is nearly indistinguishable.
+
 ## 4. What I would do next
 
 - Per-square hidden states for the candidate moves (instead of the pooled state) in the
