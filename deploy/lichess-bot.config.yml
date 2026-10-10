@@ -1,0 +1,54 @@
+# lichess-bot configuration for CloroxMaelstromBot.
+# 1. Create a NEW Lichess account that has never played a game, generate a token with the
+#    bot:play scope, and upgrade it:  curl -d '' https://lichess.org/api/bot/account/upgrade -H "Authorization: Bearer <token>"
+#    (irreversible; never do this on your human account).
+# 2. git clone https://github.com/lichess-bot-devs/lichess-bot && pip install -r requirements.txt
+# 3. cp this file to lichess-bot/config.yml, put the token in LICHESS_BOT_TOKEN, and run
+#    python lichess-bot.py  from the lichess-bot directory (with this repo's .venv active).
+token: "${LICHESS_BOT_TOKEN}"
+url: "https://lichess.org/"
+
+engine:
+  dir: "../CloroxMaelstromBot/deploy"
+  name: "maelstrom-uci.sh"
+  protocol: "uci"
+  ponder: false
+  polyglot:
+    enabled: false
+  uci_options:
+    Temperature: 1.0
+    TopP: 1.0
+    BookMaxPly: 20
+    BookMinCount: 2
+    SelfElo: 1950
+    OppoElo: 1950
+    ThinkTime: true
+    MaxThinkFrac: 0.25
+  draw_or_resign:
+    resign_enabled: false
+    offer_draw_enabled: false
+
+abort_time: 30
+fake_think_time: false   # the engine does its own think-time delay
+rate_limiting_delay: 0
+move_overhead: 1000      # ms, covers model latency on CPU
+
+challenge:
+  concurrency: 1
+  sort_by: "best"
+  accept_bot: true
+  only_bot: false
+  max_increment: 10
+  min_increment: 0
+  max_base: 900
+  min_base: 60
+  variants: ["standard"]
+  time_controls: ["blitz", "rapid"]
+  modes: ["casual"]      # keep casual while testing; add "rated" later
+  block_list: []
+
+greeting:
+  hello: "Hi! I'm a bot trained to play like one specific ~2000-rated human, mistakes and all. Good luck!"
+  goodbye: "Good game!"
+
+pgn_directory: "game_records"   # lichess-bot saves every game here -> input for the stylometry test
