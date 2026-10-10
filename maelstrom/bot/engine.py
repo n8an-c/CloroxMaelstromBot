@@ -119,7 +119,7 @@ class MaelstromEngine:
                 "self_elo": self.opts["SelfElo"], "oppo_elo": self.opts["OppoElo"]}
         r = run_batch(self.model, self.cfg, [item], "cpu", K, want_hidden=self.adapter is not None)[0]
         moves, logp = list(r["topk_moves"]), np.asarray(r["topk_logp"], dtype=np.float64)
-        w, d, l = r["wdl"]
+        l, d, w = r["wdl"]  # Maia-3 value labels are [loss, draw, win] for the side to move
         self.last_expected_score = float(w + 0.5 * d)
         if self.adapter is not None:
             mat, n_pieces = nonpawn_material(board)

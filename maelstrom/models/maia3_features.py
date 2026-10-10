@@ -8,7 +8,7 @@ batches. Output table (one row per position):
     game_id, ply, pred_move, p_played, top3                  -> evaluation contract
     topk_moves (list[str]), topk_logp (list[float])           -> top-K candidates for the re-ranker
     logp_played, entropy, n_legal
-    wdl (list[3])  win/draw/loss from the side to move; ponder (Maia-3's think-time head)
+    wdl (list[3])  [loss, draw, win] from the side to move (Maia-3's label order); ponder (Maia-3's think-time head)
     hidden (list[dim_vit])  mean-pooled final-layer state, input to the adapter
 
 Elo inputs are the Lichess-equivalent ratings of the mover and the opponent
