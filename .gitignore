@@ -16,3 +16,5 @@ tools/
 # secrets
 .env
 configs/local.yaml
+# trained artifacts (derived from private game data)
+models/
