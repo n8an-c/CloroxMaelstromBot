@@ -25,7 +25,10 @@ engine:
     ThinkTime: true
     MaxThinkFrac: 0.25
   draw_or_resign:
-    resign_enabled: false
+    resign_enabled: true       # the engine reports a cp score derived from Maia-3's WDL head
+    resign_score: -700         # ~7% win probability: where the owner resigns (median over 1,387 resigned games)
+    resign_for_egtb_minus_two: false
+    resign_moves: 2
     offer_draw_enabled: false
 
 abort_time: 30

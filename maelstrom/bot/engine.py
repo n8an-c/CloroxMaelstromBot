@@ -112,12 +112,15 @@ class MaelstromEngine:
         return hist
 
     def policy(self, clock_left: float | None) -> tuple[list[str], np.ndarray, float]:
-        """Returns (candidate moves, probabilities over them, model entropy)."""
+        """Returns (candidate moves, probabilities over them, model entropy); sets self.last_expected_score
+        (Maia-3 value head, side-to-move POV, win + 0.5 * draw) for resignation logic."""
         board = self.board
         item = {"game_id": "live", "ply": len(self.moves) + 1, "board": board, "hist": self._history(), "played": "0000",
                 "self_elo": self.opts["SelfElo"], "oppo_elo": self.opts["OppoElo"]}
         r = run_batch(self.model, self.cfg, [item], "cpu", K, want_hidden=self.adapter is not None)[0]
         moves, logp = list(r["topk_moves"]), np.asarray(r["topk_logp"], dtype=np.float64)
+        w, d, l = r["wdl"]
+        self.last_expected_score = float(w + 0.5 * d)
         if self.adapter is not None:
             mat, n_pieces = nonpawn_material(board)
             speed = speed_class(int(self.base), int(self.inc), "lichess") or "blitz"
@@ -168,6 +171,13 @@ class MaelstromEngine:
         return float(min(s, self.opts["MaxThinkFrac"] * clock_left))
 
     _last_think = 0.0
+    last_expected_score = 0.5
+
+    @staticmethod
+    def score_cp(expected: float) -> int:
+        """Lichess win-probability formula inverted: expected score -> centipawns (clipped)."""
+        e = min(max(expected, 1e-3), 1 - 1e-3)
+        return int(max(-1500, min(1500, math.log(e / (1 - e)) / 0.00368208)))
 
     def cmd_go(self, line: str):
         self.ensure_loaded()
@@ -193,6 +203,8 @@ class MaelstromEngine:
             p1 = float(probs.max())
             move, src = self.sample(moves, probs), "policy"
         wait = self.think_seconds(clock_left, entropy, p1, ponder)
+        if src == "policy":  # lets lichess-bot's resign logic see how the model judges the position
+            print(f"info depth 1 score cp {self.score_cp(self.last_expected_score)} pv {move}", flush=True)
         print(f"info string src={src} ply={ply} wait={wait:.1f}s clock={clock_left}", flush=True)
         remaining = wait - (time.time() - t0)
         if remaining > 0:

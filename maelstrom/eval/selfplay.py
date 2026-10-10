@@ -33,8 +33,14 @@ def _fmt_clock(s: float) -> str:
     return f"{int(s // 3600)}:{int(s % 3600 // 60):02d}:{int(s % 60):02d}"
 
 
+RESIGN_SCORE = 0.08     # expected score (Maia WDL) below which a side considers resigning; owner resigns at ~7% Stockfish win-prob
+RESIGN_PROB = 0.75      # owner resigns 75% of lost games (the rest end by mate or time)
+RESIGN_MIN_PLY = 20
+
+
 def play_game(eng: MaelstromEngine, start_moves: list[str], bot_color: chess.Color, base: float, inc: float,
-              bot_elo: int, opp_elo: int, rng: np.random.Generator, max_plies: int = 300, opp_temperature: float = 1.0) -> chess.pgn.Game:
+              bot_elo: int, opp_elo: int, rng: np.random.Generator, max_plies: int = 300, opp_temperature: float = 1.0,
+              resign: bool = True) -> chess.pgn.Game:
     eng.board = chess.Board(); eng.moves = []
     for u in start_moves:
         eng.board.push_uci(u); eng.moves.append(u)
@@ -44,10 +50,11 @@ def play_game(eng: MaelstromEngine, start_moves: list[str], bot_color: chess.Col
     node = game
     for u in start_moves:
         node = node.add_variation(chess.Move.from_uci(u)); node.set_clock(base)
-    rows = []
+    resigned: chess.Color | None = None
     while not eng.board.is_game_over(claim_draw=True) and len(eng.moves) < max_plies:
         side = eng.board.turn
         clock_left = clocks[side]
+        eng.last_expected_score = 0.5
         if side == bot_color:
             eng.opts["SelfElo"], eng.opts["OppoElo"] = bot_elo, opp_elo
             ply = len(eng.moves) + 1
@@ -68,13 +75,18 @@ def play_game(eng: MaelstromEngine, start_moves: list[str], bot_color: chess.Col
             T = eng.opts["Temperature"]; eng.opts["Temperature"] = opp_temperature
             move = eng.sample(moves, probs); eng.opts["Temperature"] = T
             think = eng.think_seconds(clock_left, entropy, float(probs.max()), None)  # same clock model as a stand-in human
+        if resign and len(eng.moves) >= RESIGN_MIN_PLY and eng.last_expected_score < RESIGN_SCORE and rng.random() < RESIGN_PROB:
+            resigned = side
+            break
         clocks[side] = float(np.floor(clock_left - think + inc))  # Lichess records clocks in whole seconds
         if clocks[side] <= 0:
             break  # flag
         eng.board.push_uci(move); eng.moves.append(move)
         node = node.add_variation(chess.Move.from_uci(move)); node.set_clock(clocks[side])
     outcome = eng.board.outcome(claim_draw=True)
-    if outcome is not None:
+    if resigned is not None:
+        result = "0-1" if resigned == chess.WHITE else "1-0"
+    elif outcome is not None:
         result = outcome.result()
     elif min(clocks.values()) <= 0:
         result = "0-1" if clocks[chess.WHITE] <= 0 else "1-0"
@@ -90,7 +102,8 @@ def play_game(eng: MaelstromEngine, start_moves: list[str], bot_color: chess.Col
     h["WhiteElo"], h["BlackElo"] = (str(bot_elo), str(opp_elo)) if bot_color == chess.WHITE else (str(opp_elo), str(bot_elo))
     h["TimeControl"] = f"{int(base)}+{int(inc)}"
     h["Result"] = result
-    h["Termination"] = "Time forfeit" if min(clocks.values()) <= 0 else "Normal"
+    h["Termination"] = "Time forfeit" if (resigned is None and min(clocks.values()) <= 0) else "Normal"
+    h["Resigned"] = "none" if resigned is None else ("white" if resigned == chess.WHITE else "black")
     return game
 
 
@@ -107,6 +120,7 @@ def main(argv=None):
     p.add_argument("--temperature", type=float, default=1.0)
     p.add_argument("--opp-temperature", type=float, default=1.0)
     p.add_argument("--no-book", action="store_true")
+    p.add_argument("--no-resign", action="store_true")
     p.add_argument("--threads", type=int, default=2)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--out", default="data/selfplay/bot_vs_maia.pgn")
@@ -128,7 +142,7 @@ def main(argv=None):
             start = g.moves_uci.split()[: a.start_plies]
             bot_color = chess.WHITE if g.user_color == "white" else chess.BLACK
             game = play_game(eng, start, bot_color, float(g.base_seconds), float(g.increment or 0),
-                             int(g.user_elo_lichess or 1950), int(g.opp_elo_lichess or 1950), rng)
+                             int(g.user_elo_lichess or 1950), int(g.opp_elo_lichess or 1950), rng, resign=not a.no_resign)
             print(game, file=f, end="\n\n"); f.flush()
             if i % 10 == 0:
                 print(f"  {i}/{len(src)} games, {(time.time() - t0) / i:.1f}s/game", file=sys.stderr, flush=True)
