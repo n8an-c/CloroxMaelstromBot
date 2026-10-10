@@ -237,8 +237,8 @@ class MaelstromEngine:
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--model", default="maia3-5m")
-    p.add_argument("--adapter", default="models/adapter_maia3-5m.pt")
+    p.add_argument("--model", default="maia3-23m")
+    p.add_argument("--adapter", default="models/adapter_maia3-23m.pt")
     p.add_argument("--think-time", default="models/think_time.pkl")
     p.add_argument("--book", default="data/processed/positions.parquet")
     p.add_argument("--book-splits", default="train,val")

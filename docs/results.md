@@ -26,6 +26,7 @@ All numbers below are on the **temporal test split** unless stated. 95% CIs are 
 | Maia-3 23M, frozen | 60.7% [59.9, 61.4] | 59.9% | 86.7% | 1.184 [1.161, 1.206] | 1.180 |
 | **Maia-3 5M + you-adapter** (all 3,301 train games) | **59.4%** [58.6, 60.2] | 58.0% | **87.1%** | **1.191** [1.168, 1.215] | 1.222 |
 | Maia-3 5M + adapter, 2,000 most recent games | 59.9% | 58.5% | 86.9% | 1.200 | 1.220 |
+| **Maia-3 23M + you-adapter** (final model) | **61.0%** [60.1, 61.8] | **60.2%** | **87.9%** | **1.145** [1.121, 1.171] | **1.168** |
 
 Where the opening book covers a position (positions seen in training, 365 after ply 10),
 it predicts the move 77-79% of the time; the adapter reaches 71% top-1 / 0.80 NLL on those
@@ -33,7 +34,8 @@ same positions vs 61.6% / 1.00 for frozen Maia-3.
 
 **Reading:** Maia-3 already predicts this player far better than any engine-based baseline
 (58.8% vs 41%). Scaling the frozen base from 5M to 23M (+1.9 pp, -4.3% NLL) is worth more than
-personalising the 5M model (+0.6 pp, -3.7% NLL); an adapter on 23M is the natural final model (_pending_). Personalisation on 4k games adds a small, real gain: -3.7% NLL and +0.6 pp
+personalising the 5M model (+0.6 pp, -3.7% NLL); the adapter on 23M combines both: 61.0% / 1.145, i.e. +2.2 pp and -7.4% NLL over the frozen 5M
+baseline, of which the adapter contributes +0.3 pp and -3.3% NLL on top of frozen 23M. Personalisation on 4k games adds a small, real gain: -3.7% NLL and +0.6 pp
 top-1 overall, -1.5% NLL after the opening. The gain is concentrated in the opening and in
 previously seen positions, i.e. the repertoire. Middlegame/endgame top-1 is flat, with a
 small NLL improvement. This is in line with the literature (Maia4All: +1-2 pp at 2,500 games).
