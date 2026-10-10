@@ -25,6 +25,7 @@ maelstrom-annotate = "maelstrom.annotate.stockfish:main"
 maelstrom-eda = "maelstrom.analysis.eda:main"
 maelstrom-baselines = "maelstrom.eval.baselines:main"
 maelstrom-stockfish-baseline = "maelstrom.eval.stockfish_baseline:main"
+maelstrom-adapter = "maelstrom.models.adapter:main"
 maelstrom-maia3-features = "maelstrom.models.maia3_features:main"
 
 [tool.setuptools.packages.find]
