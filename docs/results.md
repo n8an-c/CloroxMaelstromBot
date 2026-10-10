@@ -87,8 +87,8 @@ Scored with the same Stockfish annotation as my own games. See `reports/humanlik
 | no adapter (plain Maia-3 5M, T=1, book, think-time) | 0.485 | 70 | 2.2 | 0.795 / 0.911 |
 | adapter, argmax (T=0), book, think-time | 0.802 | 42 | 1.0 | 0.791 / 0.904 |
 | ~~full bot + resignation (T=1 / 0.8 / 0.65)~~ | invalid | | | see note |
-| final: 23M adapter + resignation, T=1.0 | _pending_ | | | |
-| final: 23M adapter + resignation, T=0.8 | _pending_ | | | |
+| final: 23M adapter + book + think-time + resignation, T=1.0 | 0.47 | 60 | 2.0 | 0.767 / 0.854 |
+| **final: same, T=0.8 (deployed)** | 0.63 | **56** | **1.6** | **0.759 / 0.831** |
 | full bot without opening book (T=1) | 0.478 | 63 | 2.4 | 0.754 / 0.823 |
 
 In the first run the classifier separated us almost entirely on **timing** (timing-only
@@ -124,10 +124,36 @@ far less often than I do (1-2% vs 7.6% of moves, i.e. premoves) and thinks longe
 Argmax play (T=0) makes the bot *stronger* than me (middlegame ACPL 42 vs 56, blunders 1.0 vs 1.6 per 100,
 best-move rate 47% vs 42%), which is exactly why the bot samples from the policy.
 
+### Final bot vs me, side by side (moves after ply 10, 200 self-play games vs 408 real test games)
+
+| | me | bot (23M adapter, T=0.8, resignation) |
+|---|---|---|
+| ACPL | 53 | 50 |
+| best-move rate | 42.1% | 42.9% |
+| blunders / 100 moves | 1.5 | 1.4 |
+| middlegame ACPL / blunders | 56 / 1.6 | 56 / 1.6 |
+| endgame ACPL / blunders | 61 / 1.9 | 55 / 1.7 |
+| moves per game after ply 10 | 30 | 31 |
+| median clock fraction left | 0.67 | 0.68 |
+| median think time, middlegame | 5.0 s | 6.0 s |
+| blunders / 100 with < 10 s left | 2.8 | 0.0 (n = 193) |
+| blunders / 100 with 10-30 s left | 2.8 | 1.6 |
+| share of moves under 1 s | 7.6% | ~1.5% |
+| resigns lost games | 75% | 55 of 104 losses (53%) + opponent 96 |
+
+Overall quality, game length and clock use now match. What a classifier still finds (AUC 0.76 per move,
+0.83 per game) is **time pressure**: I collapse under 30 seconds and the bot does not, because Maia-3 has no
+clock input and the adapter could not learn it from 143k moves; and I premove far more often. Both are the
+obvious next modelling targets. For reference, the "null" of two different humans at the same rating would
+not give AUC 0.5 either, so a fair target is the AUC between me and another ~2000 player, not 0.5.
+
 ## 4. What I would do next
 
 - Per-square hidden states for the candidate moves (instead of the pooled state) in the
   adapter, Matilda-style; engine features for the candidates.
+- A clock-conditioned error model: raise the sampling temperature as the clock runs down, fitted to my
+  blunder-rate-vs-clock curve; a premove model for the 7.6% of moves I play instantly.
 - Recency-weighted training and book; a blinded human test with clubmates; live games on
-  the BOT account and a stylometry test on *real* Lichess games (no simulation artifacts).
+  the BOT account and a stylometry test on *real* Lichess games (no simulation artifacts); the same
+  stylometry test between me and another 2000-rated human as the reference AUC.
 - Maia-2 (MIT) as the base for a closed-source deployment, if ever needed.

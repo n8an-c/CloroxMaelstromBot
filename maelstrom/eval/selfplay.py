@@ -117,7 +117,7 @@ def main(argv=None):
     p.add_argument("--adapter", default="models/adapter_maia3-23m.pt")
     p.add_argument("--think-time", default="models/think_time.pkl")
     p.add_argument("--book-splits", default="train,val")
-    p.add_argument("--temperature", type=float, default=1.0)
+    p.add_argument("--temperature", type=float, default=0.8)
     p.add_argument("--opp-temperature", type=float, default=1.0)
     p.add_argument("--no-book", action="store_true")
     p.add_argument("--no-resign", action="store_true")

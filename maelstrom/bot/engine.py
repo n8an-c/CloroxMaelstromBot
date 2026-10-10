@@ -37,7 +37,7 @@ class _Row:  # duck-typed row for context_features / think-time features
 class MaelstromEngine:
     def __init__(self, a):
         self.a = a
-        self.opts = {"Temperature": 1.0, "TopP": 1.0, "BookMaxPly": 20, "BookMinCount": 2, "SelfElo": a.elo, "OppoElo": a.elo,
+        self.opts = {"Temperature": 0.8, "TopP": 1.0, "BookMaxPly": 20, "BookMinCount": 2, "SelfElo": a.elo, "OppoElo": a.elo,
                      "ThinkTime": not a.no_wait, "MaxThinkFrac": 0.25}
         self.rng = np.random.default_rng(a.seed)
         self.board = chess.Board()
@@ -69,7 +69,7 @@ class MaelstromEngine:
     def cmd_uci(self):
         print("id name CloroxMaelstromBot")
         print("id author n8an-c")
-        print("option name Temperature type string default 1.0")
+        print("option name Temperature type string default 0.8")
         print("option name TopP type string default 1.0")
         print("option name BookMaxPly type spin default 20 min 0 max 60")
         print("option name BookMinCount type spin default 2 min 1 max 100")

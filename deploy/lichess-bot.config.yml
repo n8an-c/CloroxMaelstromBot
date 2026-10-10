@@ -16,7 +16,7 @@ engine:
   polyglot:
     enabled: false
   uci_options:
-    Temperature: 1.0
+    Temperature: 0.8   # matches the owner's ACPL / blunder rate in self-play
     TopP: 1.0
     BookMaxPly: 20
     BookMinCount: 2

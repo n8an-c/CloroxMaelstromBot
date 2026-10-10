@@ -15,8 +15,8 @@ book, policy sampling instead of argmax, and a think-time model. Deployed via li
 | 1 | Baselines: Maia-3 5M/23M, Stockfish (depth / Skill Level), opening book, kNN | done except Maia-2 (weights host blocked) |
 | 2 | Personalisation: residual adapter on frozen Maia-3 features; ablations, data-size curve | done: final model (adapter on Maia-3 23M) 61.0% top-1 / NLL 1.145 vs 58.8% / 1.237 for frozen Maia-3 5M on the temporal test split |
 | 3 | Hybrid UCI engine: book -> sampled policy -> think-time delay; lichess-bot config | done (live BOT account pending) |
-| 4 | Human-likeness: self-play vs Maia-3, distributional tests, stylometry AUC | done for 5M variants (move-level AUC 0.86 -> 0.77 after clock quantisation and calibrated resignation); temperature sweep running |
-| 5 | Ship: write-up (`docs/results.md`), model card (`docs/model_card.md`) | drafted |
+| 4 | Human-likeness: self-play vs Maia-3, distributional tests, stylometry AUC | done: final bot matches ACPL (50 vs 53), blunder rate (1.4 vs 1.5/100), game length and clock use; stylometry AUC 0.76 move / 0.83 game, driven by time-pressure behaviour |
+| 5 | Ship: write-up (`docs/results.md`), model card (`docs/model_card.md`), AGPL-3.0 | done; live BOT account and blinded human test are the owner's steps |
 
 ## Setup
 
