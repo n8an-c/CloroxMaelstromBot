@@ -167,6 +167,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--topk", type=int, default=16)
     p.add_argument("--threads", type=int, default=None)
     p.add_argument("--limit", type=int, default=None)
+    p.add_argument("--shard", default=None, help="k/n: process the k-th of n shards (by game, in order); output tag gets _shard{k}of{n}")
     a = p.parse_args(argv)
     if a.threads:
         torch.set_num_threads(a.threads)
@@ -178,6 +179,10 @@ def main(argv: list[str] | None = None) -> None:
         pos = pos[pos.is_user]
     if a.split:
         pos = pos[pos.split == a.split]
+    if a.shard:
+        k, n = (int(x) for x in a.shard.split("/"))
+        gids = sorted(pos.game_id.unique())
+        pos = pos[pos.game_id.isin(gids[k::n])]
     if a.limit:
         pos = pos.head(a.limit)
     cfg, model = load_maia3(a.model, a.checkpoint_path, a.device)
@@ -186,6 +191,8 @@ def main(argv: list[str] | None = None) -> None:
     out = pathlib.Path(a.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     tag = f"{a.model}_{a.split or 'all'}{'_all-moves' if a.all_moves else ''}{'_const' + str(a.const_elo) if a.elo_mode == 'const' else ''}"
+    if a.shard:
+        tag += f"_shard{a.shard.replace('/', 'of')}"
     df.to_parquet(out / f"{tag}.parquet", index=False)
     acc = (df["pred_move"] == pos.set_index(["game_id", "ply"]).loc[list(zip(df.game_id, df.ply)), "move_uci"].values).mean()
     print(f"{len(df)} rows -> {out / (tag + '.parquet')}   top-1 {acc:.3%}   mean NLL {-df['logp_played'].mean():.3f}")
