@@ -68,7 +68,7 @@ def play_game(eng: MaelstromEngine, start_moves: list[str], bot_color: chess.Col
             T = eng.opts["Temperature"]; eng.opts["Temperature"] = opp_temperature
             move = eng.sample(moves, probs); eng.opts["Temperature"] = T
             think = eng.think_seconds(clock_left, entropy, float(probs.max()), None)  # same clock model as a stand-in human
-        clocks[side] = clock_left - think + inc
+        clocks[side] = float(np.floor(clock_left - think + inc))  # Lichess records clocks in whole seconds
         if clocks[side] <= 0:
             break  # flag
         eng.board.push_uci(move); eng.moves.append(move)

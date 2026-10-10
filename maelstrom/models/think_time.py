@@ -70,6 +70,8 @@ class ThinkTimeModel:
         self.reg = HistGradientBoostingRegressor(max_iter=400, learning_rate=0.05, max_leaf_nodes=31, min_samples_leaf=50,
                                                  l2_regularization=1.0, random_state=seed, early_stopping=True, validation_fraction=0.1)
         self.resid_std_by_bucket: dict[tuple, float] = {}
+        self.resid_samples: dict[tuple, np.ndarray] = {}   # empirical residuals per bucket (keeps the premove spike and the heavy tail)
+        self.global_resid = np.zeros(1)
         self.global_std = 0.5
 
     def fit(self, df: pd.DataFrame):
@@ -80,6 +82,11 @@ class ThinkTimeModel:
         self.global_std = float(r.std())
         b = _bucket(df)
         self.resid_std_by_bucket = {k: float(v) for k, v in pd.Series(r).groupby(b.values).std().items()}
+        rng = np.random.default_rng(0)
+        self.global_resid = rng.choice(r, size=min(len(r), 5000), replace=False)
+        for k, idx in pd.Series(np.arange(len(r))).groupby(b.values).groups.items():
+            rr = r[np.asarray(list(idx))]
+            self.resid_samples[k] = rng.choice(rr, size=min(len(rr), 3000), replace=False)
         return self
 
     def predict_log(self, df: pd.DataFrame) -> np.ndarray:
@@ -87,8 +94,11 @@ class ThinkTimeModel:
 
     def sample_seconds(self, df: pd.DataFrame, rng: np.random.Generator) -> np.ndarray:
         mu = self.predict_log(df)
-        sd = np.array([self.resid_std_by_bucket.get(k, self.global_std) for k in _bucket(df)])
-        s = np.expm1(mu + rng.normal(0, 1, len(mu)) * sd).clip(0.0)
+        if self.resid_samples:
+            eps = np.array([rng.choice(self.resid_samples.get(k, self.global_resid)) for k in _bucket(df)])
+        else:  # legacy pickles
+            eps = rng.normal(0, 1, len(mu)) * np.array([self.resid_std_by_bucket.get(k, self.global_std) for k in _bucket(df)])
+        s = np.expm1(mu + eps).clip(0.0)
         return np.minimum(s, df.clock_before.to_numpy() * 0.9)  # never flag
 
 
