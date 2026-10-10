@@ -99,7 +99,7 @@ def run_batch(model, cfg, items: list[dict], device: str, topk: int, want_hidden
     logits_move, logits_value, logits_ponder = model(tokens, self_elos, oppo_elos)
     hidden = _pooled_hidden(model, tokens, self_elos, oppo_elos).cpu().numpy() if want_hidden else None
     wdl = torch.softmax(logits_value, dim=-1).cpu().numpy()
-    ponder = logits_ponder.squeeze(-1).cpu().numpy()
+    ponder = logits_ponder.reshape(-1).cpu().numpy()
     out = []
     for i, it in enumerate(items):
         board = it["board"]
