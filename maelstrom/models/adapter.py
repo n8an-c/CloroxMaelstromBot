@@ -238,6 +238,8 @@ def main(argv=None):
     p.add_argument("--split", default="test")
     p.add_argument("--no-clock", action="store_true")
     p.add_argument("--max-train-games", type=int, default=None, help="data-size curve: use the most recent N train games")
+    p.add_argument("--val-recent", type=float, default=None,
+                   help="temporal validation: hold out this fraction of the most recent train games as val instead of the random val split")
     p.add_argument("--epochs", type=int, default=30)
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--wd", type=float, default=1e-2)
@@ -254,13 +256,19 @@ def main(argv=None):
     ck = pathlib.Path(a.ckpt)
     if a.cmd == "train":
         tr = pos[pos.split == "train"]
+        va = pos[pos.split == "val"]
+        games = pd.read_parquet(pathlib.Path(a.data_dir) / "games.parquet")
+        if a.val_recent:
+            order = games[games.game_id.isin(tr.game_id.unique())].sort_values("datetime_utc").game_id
+            n_val = int(round(len(order) * a.val_recent))
+            va_ids = set(order.tail(n_val)); va = tr[tr.game_id.isin(va_ids)]; tr = tr[~tr.game_id.isin(va_ids)]
+            print(f"temporal validation: {len(va_ids)} most recent train games held out", file=sys.stderr)
         if a.max_train_games:
-            games = pd.read_parquet(pathlib.Path(a.data_dir) / "games.parquet")
             recent = games[games.game_id.isin(tr.game_id.unique())].sort_values("datetime_utc").game_id.tail(a.max_train_games)
             tr = tr[tr.game_id.isin(recent)]
         print(f"building datasets: train {len(tr)} positions / {tr.game_id.nunique()} games, use_clock={use_clock}", file=sys.stderr)
         d_tr = build_dataset(tr, feats, use_clock)
-        d_va = build_dataset(pos[pos.split == "val"], feats, use_clock)
+        d_va = build_dataset(va, feats, use_clock)
         print(f"  played move in top-{K}: train {(d_tr['y'] >= 0).mean():.4f}  val {(d_va['y'] >= 0).mean():.4f}", file=sys.stderr)
         model, info = train(d_tr, d_va, d_tr["H"].shape[1], a.epochs, a.lr, a.wd, device="cpu", seed=a.seed,
                             d_model=a.d_model, dropout=a.dropout, log=lambda s: print(s, file=sys.stderr))
