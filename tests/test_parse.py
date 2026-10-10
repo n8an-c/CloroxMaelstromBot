@@ -52,9 +52,19 @@ def test_games_table(parsed):
     assert not games[games.platform == "chesscom"].has_evals.any()
     assert games.datetime_utc.is_monotonic_increasing
     cc = games[games.platform == "chesscom"].iloc[0]
-    assert cc.user_elo_lichess == cc.user_elo + RATING_MAP[cc.speed]["b"]
+    assert cc.opp_elo_lichess == cc.opp_elo + RATING_MAP[cc.speed]["b"]
+    # the user's own rating on chess.com games is the concurrent lichess rating for that speed
+    assert cc.user_elo_lichess_src == "concurrent"
+    ref = games[(games.platform == "lichess") & (games.speed == cc.speed) & (games.datetime_utc <= cc.datetime_utc)]
+    assert cc.user_elo_lichess == ref.sort_values("datetime_utc").user_elo.iloc[-1]
+    # positions carry it consistently for both sides
+    pc = pos[pos.game_id == cc.game_id]
+    assert (pc.loc[pc.is_user, "mover_elo_lichess"] == cc.user_elo_lichess).all()
+    assert (pc.loc[~pc.is_user, "opp_elo_lichess"] == cc.user_elo_lichess).all()
+    assert (pc.loc[~pc.is_user, "mover_elo_lichess"] == cc.opp_elo_lichess).all()
     li = games[games.platform == "lichess"].iloc[0]
     assert li.user_elo_lichess == li.user_elo
+    assert (games.loc[games.platform == "lichess", "user_elo_lichess_src"] == "lichess").all()
     assert games.n_plies.sum() == len(pos)
     # scope: blitz/rapid on or after min_date
     assert not games.loc[games.speed == "bullet", "in_scope"].any()

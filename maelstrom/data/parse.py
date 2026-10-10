@@ -23,6 +23,7 @@ from typing import Iterable, Iterator
 
 import chess
 import chess.pgn
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
@@ -363,7 +364,48 @@ def parse_files(paths: list[pathlib.Path], users: dict[str, str], rating_map: di
         gdf = gdf.sort_values(["datetime_utc", "game_id"]).reset_index(drop=True)
         gdf["in_scope"] = in_scope_mask(gdf, scope_speeds, min_date).values
         pdf = pdf.merge(gdf[["game_id", "in_scope"]], on="game_id", how="left")
+        gdf, pdf = apply_concurrent_user_elo(gdf, pdf)
     return gdf, pdf
+
+
+def apply_concurrent_user_elo(games: pd.DataFrame, pos: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Replace the user's Lichess-equivalent rating on Chess.com games with the user's
+    *concurrent Lichess rating for the same speed* (last Lichess game of that speed before
+    the game's date, or the first one after it when there is none before). Opponents keep
+    the fixed-offset mapping. Chess.com ratings can lag badly when the site is under-played;
+    Maia-style models condition on skill, so the input should reflect real strength.
+
+    Adds games.user_elo_lichess_src = 'lichess' | 'concurrent' | 'mapped'.
+    """
+    games = games.copy()
+    games["user_elo_lichess_src"] = np.where(games.platform == "lichess", "lichess", "mapped")
+    li = games[(games.platform == "lichess") & games.user_elo.notna() & games.datetime_utc.notna()]
+    for speed, ref in li.groupby("speed"):
+        ref = ref.sort_values("datetime_utc")[["datetime_utc", "user_elo"]]
+        tgt_idx = games.index[(games.platform != "lichess") & (games.speed == speed) & games.datetime_utc.notna()]
+        if not len(tgt_idx) or not len(ref):
+            continue
+        tgt = games.loc[tgt_idx, ["datetime_utc"]].reset_index()
+        back = pd.merge_asof(tgt.sort_values("datetime_utc"), ref.rename(columns={"user_elo": "elo"}),
+                             on="datetime_utc", direction="backward")
+        fwd = pd.merge_asof(tgt.sort_values("datetime_utc"), ref.rename(columns={"user_elo": "elo_f"}),
+                            on="datetime_utc", direction="forward")
+        m = back.merge(fwd[["index", "elo_f"]], on="index")
+        m["elo"] = m["elo"].fillna(m["elo_f"])
+        m = m.set_index("index")
+        ok = m.index[m["elo"].notna()]
+        games.loc[ok, "user_elo_lichess"] = m.loc[ok, "elo"].astype(int)
+        games.loc[ok, "user_elo_lichess_src"] = "concurrent"
+    # propagate into positions: the user's rating appears as mover (own moves) or opponent (their moves)
+    pos = pos.drop(columns=[c for c in ("mover_elo_lichess", "opp_elo_lichess") if c in pos])
+    g = games.set_index("game_id")[["user_color", "user_elo_lichess", "opp_elo_lichess"]]
+    j = pos[["game_id", "mover_color"]].join(g, on="game_id")
+    user_moves = j["mover_color"] == j["user_color"]
+    pos["mover_elo_lichess"] = np.where(user_moves, j["user_elo_lichess"], j["opp_elo_lichess"])
+    pos["opp_elo_lichess"] = np.where(user_moves, j["opp_elo_lichess"], j["user_elo_lichess"])
+    pos["mover_elo_lichess"] = pos["mover_elo_lichess"].astype("Int64")
+    pos["opp_elo_lichess"] = pos["opp_elo_lichess"].astype("Int64")
+    return games, pos
 
 
 def default_pgn_paths(root: pathlib.Path = pathlib.Path("data/raw")) -> list[pathlib.Path]:
