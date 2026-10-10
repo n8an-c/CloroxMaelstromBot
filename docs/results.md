@@ -83,7 +83,7 @@ Scored with the same Stockfish annotation as my own games. See `reports/humanlik
 | first run (Gaussian think-time residuals, continuous clocks) | 0.48 | 71 | 2.4 | 0.862 / 0.883 |
 | full bot (adapter, T=1, book, empirical think-time, whole-second clocks) | 0.54 | 69 | 2.0 | 0.801 / 0.899 |
 | no adapter (plain Maia-3 5M, T=1, book, think-time) | 0.485 | 70 | 2.2 | 0.795 / 0.911 |
-| adapter, argmax (T=0) | _pending_ | | | |
+| adapter, argmax (T=0), book, think-time | 0.802 | 42 | 1.0 | 0.791 / 0.904 |
 | full bot without book | _pending_ | | | |
 
 In the first run the classifier separated us almost entirely on **timing** (timing-only
@@ -98,6 +98,9 @@ move quality only 0.568. The remaining separation comes from *game length and cl
 the simulated games never resign, so the bot plays 43 moves per game after ply 10 vs my 30
 (median ply 55 vs 42) and runs its clock lower (median 53% left vs 67%). A resignation rule
 calibrated on my own games is the next fix; move quality itself is nearly indistinguishable.
+
+Argmax play (T=0) makes the bot *stronger* than me (middlegame ACPL 42 vs 56, blunders 1.0 vs 1.6 per 100,
+best-move rate 47% vs 42%), which is exactly why the bot samples from the policy.
 
 ## 4. What I would do next
 
