@@ -56,8 +56,12 @@ def _chunk(rows, sf_path, depth, skill, multipv, temp_cp):
             probs = w / (w.sum() + tail)
             p_other = (w.min() * 0.5) / (w.sum() + tail) if rest else 0.0
             pm = dict(zip(moves, probs))
-            out.append({"game_id": gid, "ply": ply, "pred_move": moves[0],
-                        "p_played": pm.get(played, p_other), "top3": moves[:3]})
+            pred = moves[0]
+            if skill is not None:
+                # Skill Level only randomises the move Stockfish *plays*, not MultiPV scores
+                pred = eng.play(board, limit).move.uci()
+            out.append({"game_id": gid, "ply": ply, "pred_move": pred,
+                        "p_played": pm.get(played, p_other), "top3": [pred] + [m for m in moves if m != pred][:2]})
     finally:
         eng.quit()
     return out
