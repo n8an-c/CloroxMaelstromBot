@@ -5,8 +5,8 @@
 
 | platform | speed | games | your mean rating | lichess-equiv | score | mean plies |
 |---|---|---|---|---|---|---|
-| chesscom | blitz | 1166 | 1767 | 1967 | 0.528 | 69 |
-| chesscom | rapid | 542 | 1903 | 1978 | 0.553 | 70 |
+| chesscom | blitz | 1166 | 1767 | 2007 | 0.528 | 69 |
+| chesscom | rapid | 542 | 1903 | 2035 | 0.553 | 70 |
 | lichess | blitz | 1905 | 1943 | 1943 | 0.508 | 70 |
 | lichess | rapid | 463 | 2012 | 2012 | 0.529 | 74 |
 
@@ -191,17 +191,17 @@ Out of scope (excluded from modelling): 7233 games. Scope = speeds and min_date 
 
 | clock remaining | moves | ACPL | best-move % | inaccuracy/100 | mistake/100 | blunder/100 |
 |---|---|---|---|---|---|---|
-| <10s | 98 | 85 | 54.1% | 3.1 | 2.0 | 3.1 |
-| 10-30s | 409 | 58 | 40.8% | 4.6 | 1.5 | 2.9 |
-| 30-60s | 324 | 74 | 44.1% | 4.9 | 1.9 | 2.5 |
-| 1-2m | 662 | 52 | 44.4% | 4.5 | 1.2 | 1.5 |
-| 2-5m | 3126 | 49 | 40.4% | 5.6 | 1.7 | 1.4 |
-| >5m | 11381 | 41 | 42.5% | 5.5 | 1.5 | 1.0 |
+| <10s | 6691 | 78 | 40.6% | 5.2 | 1.9 | 2.9 |
+| 10-30s | 13723 | 73 | 40.7% | 5.5 | 2.1 | 2.7 |
+| 30-60s | 8913 | 65 | 43.2% | 6.0 | 2.0 | 2.1 |
+| 1-2m | 21073 | 63 | 43.0% | 7.3 | 2.3 | 2.0 |
+| 2-5m | 63077 | 35 | 41.0% | 5.0 | 1.4 | 0.8 |
+| >5m | 30208 | 40 | 42.2% | 5.4 | 1.4 | 1.0 |
 
 | phase | moves | ACPL | blunder/100 |
 |---|---|---|---|
-| endgame | 4847 | 54 | 1.6 |
-| middlegame | 6602 | 57 | 1.7 |
-| opening | 4551 | 17 | 0.1 |
+| endgame | 42065 | 60 | 1.9 |
+| middlegame | 61104 | 60 | 1.8 |
+| opening | 40533 | 17 | 0.2 |
 
 ![mistakes](mistakes_vs_clock.png)
