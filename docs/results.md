@@ -86,9 +86,9 @@ Scored with the same Stockfish annotation as my own games. See `reports/humanlik
 | full bot (adapter, T=1, book, empirical think-time, whole-second clocks) | 0.54 | 69 | 2.0 | 0.801 / 0.899 |
 | no adapter (plain Maia-3 5M, T=1, book, think-time) | 0.485 | 70 | 2.2 | 0.795 / 0.911 |
 | adapter, argmax (T=0), book, think-time | 0.802 | 42 | 1.0 | 0.791 / 0.904 |
-| full bot + calibrated resignation (T=1) | 0.475 | 68 | 2.8 | **0.770 / 0.839** |
-| full bot + resignation, T=0.8 | 0.36 | 61 | 1.9 | 0.762 / 0.847 |
-| full bot + resignation, T=0.65 | 0.36 | 55 | 2.0 | 0.766 / 0.845 |
+| ~~full bot + resignation (T=1 / 0.8 / 0.65)~~ | invalid | | | see note |
+| final: 23M adapter + resignation, T=1.0 | _pending_ | | | |
+| final: 23M adapter + resignation, T=0.8 | _pending_ | | | |
 | full bot without opening book (T=1) | 0.478 | 63 | 2.4 | 0.754 / 0.823 |
 
 In the first run the classifier separated us almost entirely on **timing** (timing-only
@@ -109,7 +109,13 @@ With resignation (both sides resign below a Maia-3 expected score of 0.08 with p
 left is mostly *strength*: at temperature 1 the sampled bot is a little weaker and more erratic than me (ACPL 68 vs 56,
 endgame blunders 3.5 vs 1.9 per 100), so the temperature is tuned next to match my error rate.
 
-**Temperature sweep** (5M adapter, resignation on, moves after ply 10): T=1 gives ACPL 62 / best-move 39.4% /
+**Bug note.** The first resignation runs (5M adapter, T = 1 / 0.8 / 0.65) read Maia-3's value head in the wrong
+order ([loss, draw, win], not [win, draw, loss]), so a side resigned when it was *winning*; a stronger bot won
+more and therefore resigned more, which is why the score fell as the temperature dropped. Those rows are struck
+out and the runs repeated with the final 23M adapter. The move-quality numbers from the sweep below are kept as
+indicative only, since early resignations changed which positions were played.
+
+**Temperature sweep** (5M adapter, buggy resignation, moves after ply 10): T=1 gives ACPL 62 / best-move 39.4% /
 2.7 blunders per 100; T=0.8 gives 54 / 42.3% / 2.1; T=0.65 gives 50 / 43.8% / 1.8; I am at 53 / 42.1% / 1.5.
 T=0.8 matches my move quality best and is the deployment default. The stylometry AUC barely moves across
 temperatures (0.76-0.77 move-level), so what remains is not move quality: the bot still plays under one second
